@@ -12,7 +12,6 @@ for _ in range(M):
     graph[a].append((b, c))
     graph[b].append((a, c))
 
-
 INF = int(1e18)
 dist = [INF] * (N + 1)
 dist[1] = 0
