@@ -1,0 +1,843 @@
+////////////////////////////////////////////////////////////////////////////////////순회강연
+풀이 코드
+import sys
+import heapq
+
+input = sys.stdin.readline
+
+n = int(input())
+
+lectures = []
+
+for _ in range(n):
+    p, d = map(int, input().split())
+    lectures.append((d, p))
+
+lectures.sort()
+
+heap = []
+
+for d, p in lectures:
+    heapq.heappush(heap, p)
+
+    if len(heap) > d:
+        heapq.heappop(heap)
+
+print(sum(heap))
+코드 해설
+lectures.append((d, p))
+
+마감일 기준으로 정렬하기 위해 (d, p) 순서로 저장합니다.
+
+lectures.sort()
+
+마감일이 빠른 강연부터 확인합니다.
+
+예를 들어 마감일이 2인 강연은 1일 또는 2일 안에 해야 한다는 뜻입니다.
+
+heapq.heappush(heap, p)
+
+일단 현재 강연을 선택 후보에 넣습니다.
+
+if len(heap) > d:
+    heapq.heappop(heap)
+
+현재까지 선택한 강연 개수가 d개를 넘으면 안 됩니다.
+
+예를 들어 d = 2라면, 2일 안에는 최대 2개의 강연만 할 수 있습니다.
+
+그래서 선택한 강연 중 강연료가 가장 작은 강연을 제거합니다.
+
+heapq는 최소 힙이라서 heappop()을 하면 가장 작은 강연료가 빠집니다.
+
+예제 흐름
+
+입력:
+
+20 1
+2 1
+10 3
+100 2
+8 2
+5 20
+50 10
+
+마감일 기준 정렬:
+
+(1,20), (1,2), (2,100), (2,8), (3,10), (10,50), (20,5)
+
+선택되는 강연료는 최종적으로:
+
+100, 20, 10, 50, 5
+
+합계:
+
+185
+
+정답은:
+
+185
+시간 복잡도
+
+정렬:
+
+O(n log n)
+
+힙 연산:
+
+O(n log n)
+
+전체:
+
+O(n log n)
+
+
+
+////////////////////////////////////////////////////////////////////////////////////소가 길을 건너간 이유 4
+
+
+핵심은:
+
+닭 시간을 오름차순으로 보면서, 그 시간에 건널 수 있는 소들 중 마감 시간이 가장 빠른 소를 선택한다.
+
+풀이 코드
+import sys
+import heapq
+
+input = sys.stdin.readline
+
+C, N = map(int, input().split())
+
+chickens = []
+for _ in range(C):
+    chickens.append(int(input()))
+
+cows = []
+for _ in range(N):
+    A, B = map(int, input().split())
+    cows.append((A, B))
+
+chickens.sort()
+cows.sort()
+
+heap = []
+answer = 0
+idx = 0
+
+for t in chickens:
+    # 현재 닭 시간 t에 시작 시간이 t 이하인 소들을 후보에 넣기
+    while idx < N and cows[idx][0] <= t:
+        A, B = cows[idx]
+        heapq.heappush(heap, B)
+        idx += 1
+
+    # 이미 끝난 소 제거
+    while heap and heap[0] < t:
+        heapq.heappop(heap)
+
+    # 현재 닭이 도와줄 수 있는 소 중 마감 시간이 가장 빠른 소 선택
+    if heap:
+        heapq.heappop(heap)
+        answer += 1
+
+print(answer)
+왜 마감 시간이 빠른 소를 고르나?
+
+현재 닭 시간 t에 도와줄 수 있는 소가 여러 마리라면, B가 가장 작은 소를 먼저 도와야 합니다.
+
+마감이 늦은 소는 나중 닭도 도와줄 가능성이 있지만, 마감이 빠른 소는 지금 놓치면 못 도와줄 가능성이 크기 때문입니다.
+
+예제에서 닭 시간은 정렬하면:
+
+2 6 7 8 9
+
+소 구간은:
+
+0~3
+2~5
+4~9
+8~13
+
+진행하면:
+
+t=2  → 0~3 선택
+t=6  → 4~9 선택
+t=7  → 선택 불가
+t=8  → 8~13 선택
+t=9  → 선택 불가
+
+총 3마리를 도와줄 수 있습니다.
+
+시간 복잡도
+
+정렬:
+
+O(C log C + N log N)
+
+힙 연산:
+
+O(N log N)
+
+전체:
+
+O((C + N) log N)
+
+
+
+////////////////////////////////////////////////////////////////////////////////////합승 택시 요금
+
+이 문제는 합승 택시 요금입니다.
+핵심은 어느 지점 k까지 같이 가고, k에서 A와 B가 갈라진다고 생각하는 것입니다.
+
+정답 후보:
+
+s → k 비용 + k → a 비용 + k → b 비용
+
+모든 k를 확인해서 최솟값을 구하면 됩니다.
+
+n ≤ 200이라서 플로이드 워셜이 가장 편합니다.
+
+def solution(n, s, a, b, fares):
+    INF = int(1e18)
+
+    dist = [[INF] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(1, n + 1):
+        dist[i][i] = 0
+
+    for c, d, f in fares:
+        dist[c][d] = f
+        dist[d][c] = f
+
+    # 플로이드 워셜
+    for k in range(1, n + 1):
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                if dist[i][j] > dist[i][k] + dist[k][j]:
+                    dist[i][j] = dist[i][k] + dist[k][j]
+
+    answer = INF
+
+    for k in range(1, n + 1):
+        cost = dist[s][k] + dist[k][a] + dist[k][b]
+        answer = min(answer, cost)
+
+    return answer
+
+예를 들어 k = s이면 처음부터 합승하지 않는 경우입니다.
+
+s → s + s → a + s → b
+= 0 + s → a + s → b
+
+그래서 따로 예외 처리할 필요가 없습니다.
+////////////////////////////////////////////////////////////////////////////////////파티
+이 문제는 BOJ 1238 파티 유형입니다.
+
+핵심은 각 마을 i에 대해:
+
+i → X 최단거리 + X → i 최단거리
+
+중 최댓값을 구하는 것입니다.
+
+단방향 그래프라서 i → X와 X → i가 다를 수 있습니다.
+
+풀이 코드
+import sys
+import heapq
+
+input = sys.stdin.readline
+INF = int(1e18)
+
+N, M, X = map(int, input().split())
+
+graph = [[] for _ in range(N + 1)]
+reverse_graph = [[] for _ in range(N + 1)]
+
+for _ in range(M):
+    start, end, time = map(int, input().split())
+
+    graph[start].append((end, time))
+    reverse_graph[end].append((start, time))
+
+
+def dijkstra(start, graph):
+    dist = [INF] * (N + 1)
+    dist[start] = 0
+
+    heap = []
+    heapq.heappush(heap, (0, start))
+
+    while heap:
+        cost, now = heapq.heappop(heap)
+
+        if cost > dist[now]:
+            continue
+
+        for nxt, weight in graph[now]:
+            new_cost = cost + weight
+
+            if new_cost < dist[nxt]:
+                dist[nxt] = new_cost
+                heapq.heappush(heap, (new_cost, nxt))
+
+    return dist
+
+
+# X에서 각 마을로 돌아가는 최단거리
+go_home = dijkstra(X, graph)
+
+# 각 마을에서 X로 가는 최단거리
+go_party = dijkstra(X, reverse_graph)
+
+answer = 0
+
+for i in range(1, N + 1):
+    total = go_party[i] + go_home[i]
+    answer = max(answer, total)
+
+print(answer)
+왜 reverse_graph를 쓰나?
+
+원래 그래프에서 다익스트라를 X에서 돌리면:
+
+X → 각 마을
+
+즉, 파티가 끝나고 집으로 돌아가는 거리입니다.
+
+그런데 필요한 건 이것도 있습니다.
+
+각 마을 → X
+
+이걸 모든 마을마다 다익스트라 돌리면 느립니다.
+
+그래서 간선 방향을 뒤집은 그래프를 만듭니다.
+
+원래 간선:
+
+A → B 비용 C
+
+뒤집은 간선:
+
+B → A 비용 C
+
+이 뒤집은 그래프에서 X에서 다익스트라를 돌리면 원래 그래프의:
+
+각 마을 → X
+
+거리와 같아집니다.
+
+예제
+4 8 2
+
+파티 장소는 2번 마을입니다.
+
+각 학생의 왕복 시간 중 가장 큰 값이 10이므로 정답은:
+
+10
+
+시간 복잡도는 다익스트라 2번이므로:
+
+O(M log N)
+////////////////////////////////////////////////////////////////////////////////////장애물
+
+
+이 문제는 다익스트라 + 최단 경로 복원 문제야.
+
+핵심 아이디어
+
+모든 간선을 2배로 해보면 E가 최대 25,000이라 비효율적이야.
+
+하지만 원래 최단 경로에 포함되지 않은 간선을 2배로 해도 기존 최단 경로는 그대로 사용할 수 있어.
+즉, 최단거리는 증가하지 않아.
+
+그래서:
+
+다익스트라로 원래 최단거리 A를 구한다.
+prev 배열로 원래 최단 경로를 복원한다.
+그 최단 경로에 포함된 간선만 하나씩 2배로 해본다.
+새 최단거리 B와 A의 차이 중 최댓값을 구한다.
+풀이 코드
+import sys
+import heapq
+
+input = sys.stdin.readline
+INF = int(10**18)
+
+V, E = map(int, input().split())
+
+graph = [[] for _ in range(V + 1)]
+
+for _ in range(E):
+    u, v, w = map(int, input().split())
+    graph[u].append((v, w))
+    graph[v].append((u, w))
+
+
+def dijkstra(double_edge=None):
+    dist = [INF] * (V + 1)
+    prev = [0] * (V + 1)
+
+    dist[1] = 0
+    heap = [(0, 1)]
+
+    while heap:
+        cost, now = heapq.heappop(heap)
+
+        if cost > dist[now]:
+            continue
+
+        for nxt, weight in graph[now]:
+            new_weight = weight
+
+            if double_edge is not None:
+                a, b = double_edge
+
+                if (now == a and nxt == b) or (now == b and nxt == a):
+                    new_weight *= 2
+
+            new_cost = cost + new_weight
+
+            if new_cost < dist[nxt]:
+                dist[nxt] = new_cost
+                prev[nxt] = now
+                heapq.heappush(heap, (new_cost, nxt))
+
+    return dist[V], prev
+
+
+# 1. 원래 최단거리 구하기
+A, prev = dijkstra()
+
+# 2. 원래 최단 경로에 포함된 간선 복원
+path_edges = []
+
+cur = V
+
+while cur != 1:
+    before = prev[cur]
+    path_edges.append((before, cur))
+    cur = before
+
+# 3. 최단 경로 간선만 하나씩 2배로 해보기
+answer = 0
+
+for edge in path_edges:
+    B, _ = dijkstra(edge)
+    answer = max(answer, B - A)
+
+print(answer)
+코드 해설
+graph[u].append((v, w))
+graph[v].append((u, w))
+
+양방향 그래프이므로 양쪽에 모두 저장한다.
+
+def dijkstra(double_edge=None):
+
+double_edge는 2배로 만들 간선이다.
+예를 들어 (3, 4)가 들어오면 3-4 간선의 가중치만 2배로 계산한다.
+
+if (now == a and nxt == b) or (now == b and nxt == a):
+    new_weight *= 2
+
+양방향 간선이므로 (a, b)와 (b, a) 둘 다 같은 간선으로 봐야 한다.
+
+prev[nxt] = now
+
+nxt에 도착하기 직전 정점을 저장한다.
+나중에 최단 경로를 복원할 때 사용한다.
+
+cur = V
+
+while cur != 1:
+    before = prev[cur]
+    path_edges.append((before, cur))
+    cur = before
+
+목적지 V에서 시작해서 이전 정점을 따라가면 최단 경로가 나온다.
+
+예제에서는:
+
+1 → 3 → 4 → 5
+
+간선은:
+
+(4, 5), (3, 4), (1, 3)
+
+이렇게 복원된다.
+
+for edge in path_edges:
+    B, _ = dijkstra(edge)
+    answer = max(answer, B - A)
+
+최단 경로에 있는 간선을 하나씩 2배로 바꿔보고, 증가량의 최댓값을 구한다.
+
+시간 복잡도
+
+최단 경로 간선 수는 최대 V - 1개이다.
+
+다익스트라 한 번은:
+
+O(E log V)
+
+최대 V번 정도 실행하므로:
+
+O(V × E log V)
+
+V ≤ 250, E ≤ 25000이라 가능하다.
+////////////////////////////////////////////////////////////////////////////////////두수의 합
+
+이 문제는 정렬 + 투 포인터로 풀 수 있습니다.
+
+풀이 코드
+import sys	
+
+input = sys.stdin.readline
+
+n = int(input())
+arr = list(map(int, input().split()))
+x = int(input())
+
+arr.sort()
+
+left = 0
+right = n - 1
+answer = 0
+
+while left < right:
+    total = arr[left] + arr[right]
+
+    if total == x:
+        answer += 1
+        left += 1
+        right -= 1
+
+    elif total < x:
+        left += 1
+
+    else:
+        right -= 1
+
+print(answer)
+해설
+
+먼저 수열을 정렬합니다.
+
+예제 배열:
+
+5 12 7 10 9 1 2 3 11
+
+정렬하면:
+
+1 2 3 5 7 9 10 11 12
+
+이제 양쪽 끝에서 시작합니다.
+
+left = 0
+right = n - 1
+
+arr[left] + arr[right]를 확인합니다.
+
+합이 x와 같으면
+if total == x:
+    answer += 1
+    left += 1
+    right -= 1
+
+쌍을 하나 찾은 것이므로 개수를 증가시킵니다.
+
+수열의 숫자는 서로 다르기 때문에 두 포인터를 모두 이동해도 됩니다.
+
+합이 x보다 작으면
+elif total < x:
+    left += 1
+
+합을 키워야 하므로 왼쪽 포인터를 오른쪽으로 옮깁니다.
+
+합이 x보다 크면
+else:
+    right -= 1
+
+합을 줄여야 하므로 오른쪽 포인터를 왼쪽으로 옮깁니다.
+
+예제
+
+x = 13일 때 가능한 쌍은:
+
+1 + 12 = 13
+2 + 11 = 13
+3 + 10 = 13
+
+총 3개입니다.
+
+시간 복잡도
+
+정렬:
+
+O(n log n)
+
+투 포인터:
+
+O(n)
+
+전체 시간 복잡도:
+
+O(n log n)
+////////////////////////////////////////////////////////////////////////////////////거리두기
+이 문제는 2차원 누적합(prefix sum) 문제입니다.
+
+C가 최대 1,000,000이라서, 매번 직사각형을 직접 더하면 시간초과가 납니다.
+
+풀이 코드
+import sys
+
+input = sys.stdin.readline
+
+M, N = map(int, input().split())
+
+arr = [[0] * (N + 1)]
+
+for _ in range(M):
+    row = [0] + list(map(int, input().split()))
+    arr.append(row)
+
+prefix = [[0] * (N + 1) for _ in range(M + 1)]
+
+for i in range(1, M + 1):
+    for j in range(1, N + 1):
+        prefix[i][j] = (
+            arr[i][j]
+            + prefix[i - 1][j]
+            + prefix[i][j - 1]
+            - prefix[i - 1][j - 1]
+        )
+
+C = int(input())
+
+answer = []
+
+for _ in range(C):
+    r1, c1, r2, c2 = map(int, input().split())
+
+    total = (
+        prefix[r2][c2]
+        - prefix[r1 - 1][c2]
+        - prefix[r2][c1 - 1]
+        + prefix[r1 - 1][c1 - 1]
+    )
+
+    answer.append(str(total))
+
+print("\n".join(answer))
+해설
+
+prefix[i][j]는 다음 영역의 합입니다.
+
+(1, 1)부터 (i, j)까지의 직사각형 합
+
+즉, 왼쪽 위부터 현재 위치까지의 누적합입니다.
+
+누적합 공식은 다음과 같습니다.
+
+prefix[i][j] = (
+    arr[i][j]
+    + prefix[i - 1][j]
+    + prefix[i][j - 1]
+    - prefix[i - 1][j - 1]
+)
+
+위쪽 합과 왼쪽 합을 더하면 왼쪽 위 영역이 두 번 더해지므로 한 번 빼줍니다.
+
+직사각형 합 구하기
+
+원하는 영역이 (r1, c1)부터 (r2, c2)까지라면:
+
+total = (
+    prefix[r2][c2]
+    - prefix[r1 - 1][c2]
+    - prefix[r2][c1 - 1]
+    + prefix[r1 - 1][c1 - 1]
+)
+
+의미는 다음과 같습니다.
+
+전체 누적합
+- 위쪽 영역
+- 왼쪽 영역
++ 중복해서 빠진 왼쪽 위 영역
+왜 0행, 0열을 추가하나?
+arr = [[0] * (N + 1)]
+row = [0] + list(map(int, input().split()))
+
+이렇게 하면 배열을 1번 행, 1번 열부터 사용할 수 있습니다.
+
+그래서 r1 - 1, c1 - 1이 0이 되어도 안전하게 계산할 수 있습니다.
+
+시간 복잡도
+
+누적합 생성:
+
+O(MN)
+
+각 질의 처리:
+
+O(1)
+
+전체:
+
+O(MN + C)
+
+C가 매우 커도 각 질문을 한 번의 공식으로 처리하기 때문에 가능합니다.
+////////////////////////////////////////////////////////////////////////////////////합승 택시 요금
+이 문제는 이분 탐색 + 그리디 배치 문제입니다.
+
+목표는:
+
+학생들 사이의 최소 거리 D를 최대화
+
+입니다.
+
+풀이 코드
+import sys
+
+input = sys.stdin.readline
+
+N, M = map(int, input().split())
+
+groups = []
+
+for _ in range(M):
+    a, b = map(int, input().split())
+    groups.append((a, b))
+
+groups.sort()
+
+
+def can_place(D):
+    count = 0
+    last = -10**30
+
+    for a, b in groups:
+        # 현재 그룹에서 처음 앉힐 수 있는 위치
+        pos = max(a, last + D)
+
+        if pos > b:
+            continue
+
+        # pos부터 b까지 D 간격으로 앉힐 수 있는 학생 수
+        add = (b - pos) // D + 1
+        count += add
+
+        # 마지막으로 앉힌 학생 위치 갱신
+        last = pos + (add - 1) * D
+
+        if count >= N:
+            return True
+
+    return False
+
+
+left = 1
+right = 10**18
+answer = 0
+
+while left <= right:
+    mid = (left + right) // 2
+
+    if can_place(mid):
+        answer = mid
+        left = mid + 1
+    else:
+        right = mid - 1
+
+print(answer)
+해설
+
+거리 D가 정해졌다고 생각합니다.
+
+그러면 문제는 이렇게 바뀝니다.
+
+학생들을 서로 최소 D 이상 떨어지게 N명 배치할 수 있는가?
+
+이 판단은 그리디로 할 수 있습니다.
+
+항상 가능한 가장 왼쪽 위치에 학생을 앉히면 됩니다.
+
+pos = max(a, last + D)
+
+현재 책상 그룹이 [a, b]이고, 마지막 학생 위치가 last라면
+다음 학생은 최소 last + D 이상에 앉아야 합니다.
+
+따라서 현재 그룹에서 처음 앉힐 위치는:
+
+max(그룹 시작 위치, 마지막 학생 위치 + D)
+
+입니다.
+
+그 위치가 b를 넘으면 이 그룹에는 앉힐 수 없습니다.
+
+if pos > b:
+    continue
+
+앉힐 수 있다면 pos부터 b까지 D 간격으로 학생을 배치합니다.
+
+add = (b - pos) // D + 1
+
+예를 들어 그룹이 [4, 7], D = 2, pos = 4라면:
+
+4, 6
+
+2명을 앉힐 수 있습니다.
+
+왜 이분 탐색인가?
+
+D가 작으면 학생을 배치하기 쉽습니다.
+
+D = 1 가능
+D = 2 가능
+D = 3 불가능
+D = 4 불가능
+
+이런 식으로 가능/불가능이 나뉩니다.
+
+그래서 가능한 D 중 최댓값을 이분 탐색으로 찾습니다.
+
+예제
+5 3
+0 2
+4 7
+9 9
+
+D = 2일 때 배치:
+
+0, 2, 4, 6, 9
+
+5명을 모두 배치할 수 있습니다.
+
+D = 3이면:
+
+0, 4, 7
+
+정도밖에 배치하지 못해서 5명이 불가능합니다.
+
+따라서 정답은:
+
+2
+시간 복잡도
+
+정렬:
+
+O(M log M)
+
+이분 탐색:
+
+O(log 10^18)
+
+각 판단:
+
+O(M)
+
+전체:
+
+O(M log 10^18)
+////////////////////////////////////////////////////////////////////////////////////합승 택시 요금
